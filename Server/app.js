@@ -7,6 +7,7 @@ import connectDB from "./config/db.js";
 import citizenRoutes from "./routes/citizen.routes.js";
 import issueRoutes from "./routes/issue.routes.js";
 import authRoutes from "./routes/auth.routes.js";
+import authorityRoutes from "./routes/authority.routes.js";
 import cors from "cors";
 
 dotenv.config();
@@ -48,6 +49,7 @@ app.get("/", (req, res) => {
 
 
 app.use("/api/auth", authRoutes);
+app.use("/api/authority", authorityRoutes);
 app.use("/api/citizens", citizenRoutes);
 app.use("/api/issues", issueRoutes);
 
