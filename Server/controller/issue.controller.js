@@ -1,5 +1,7 @@
 import mongoose from "mongoose";
-import Issue from "../models/Issue.js";
+import Issue from "../models/issue.js";
+import IssueUpvote from "../models/issueUpvote.js";
+import Citizen from "../models/citizen.js";
 
 
 // Generate issue number
@@ -265,6 +267,156 @@ export const getNearbyIssues = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to fetch nearby issues",
+    });
+  }
+};
+
+
+// UPVOTE ISSUE
+export const upvoteIssue = async (req, res) => {
+  try {
+    const { issueId } = req.params;
+    const citizenId = req.user._id;
+
+    if (!mongoose.Types.ObjectId.isValid(issueId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid issue ID",
+      });
+    }
+
+    const issue = await Issue.findById(issueId);
+
+    if (!issue) {
+      return res.status(404).json({
+        success: false,
+        message: "Issue not found",
+      });
+    }
+
+    // Prevent citizen from upvoting their own issue
+    if (issue.citizenId.toString() === citizenId.toString()) {
+      return res.status(400).json({
+        success: false,
+        message: "You cannot upvote your own issue",
+      });
+    }
+
+    // Check whether already upvoted
+    const existingUpvote = await IssueUpvote.findOne({
+      issueId,
+      citizenId,
+    });
+
+    if (existingUpvote) {
+      return res.status(400).json({
+        success: false,
+        message: "You have already upvoted this issue",
+      });
+    }
+
+    // Create upvote record
+    await IssueUpvote.create({
+      issueId,
+      citizenId,
+    });
+
+    // Update issue aggregate
+    await Issue.findByIdAndUpdate(issueId, {
+      $inc: {
+        "citizenEngagement.upvotes": 1,
+      },
+      $addToSet: {
+        "citizenEngagement.supporters": citizenId,
+      },
+    });
+
+    // Update citizen statistic
+    await Citizen.findByIdAndUpdate(citizenId, {
+      $inc: {
+        "statistics.issuesSupported": 1,
+      },
+    });
+
+    const updatedIssue = await Issue.findById(issueId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Issue upvoted successfully",
+      upvotes: updatedIssue.citizenEngagement.upvotes,
+    });
+  } catch (error) {
+    console.error("upvoteIssue error:", error);
+
+    // Handles race-condition duplicate inserts
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message: "You have already upvoted this issue",
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to upvote issue",
+    });
+  }
+};
+
+
+// REMOVE UPVOTE
+export const removeUpvote = async (req, res) => {
+  try {
+    const { issueId } = req.params;
+    const citizenId = req.user._id;
+
+    if (!mongoose.Types.ObjectId.isValid(issueId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid issue ID",
+      });
+    }
+
+    const upvote = await IssueUpvote.findOneAndDelete({
+      issueId,
+      citizenId,
+    });
+
+    if (!upvote) {
+      return res.status(400).json({
+        success: false,
+        message: "You have not upvoted this issue",
+      });
+    }
+
+    await Issue.findByIdAndUpdate(issueId, {
+      $inc: {
+        "citizenEngagement.upvotes": -1,
+      },
+      $pull: {
+        "citizenEngagement.supporters": citizenId,
+      },
+    });
+
+    await Citizen.findByIdAndUpdate(citizenId, {
+      $inc: {
+        "statistics.issuesSupported": -1,
+      },
+    });
+
+    const updatedIssue = await Issue.findById(issueId);
+
+    res.status(200).json({
+      success: true,
+      message: "Upvote removed successfully",
+      upvotes: updatedIssue.citizenEngagement.upvotes,
+    });
+  } catch (error) {
+    console.error("removeUpvote error:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Failed to remove upvote",
     });
   }
 };

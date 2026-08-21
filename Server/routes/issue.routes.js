@@ -1,10 +1,12 @@
 import express from "express";
 
 import {
-  createIssue,
-  getMyIssues,
-  getIssueById,
-  getNearbyIssues,
+    createIssue,
+    getMyIssues,
+    getIssueById,
+    getNearbyIssues,
+    upvoteIssue,
+    removeUpvote,
 } from "../controllers/issue.controller.js";
 
 import { requireAuth } from "../middleware/auth.middleware.js";
@@ -28,6 +30,10 @@ router.get("/nearby", getNearbyIssues);
 
 // Single issue
 router.get("/:issueId", getIssueById);
+
+router.post("/:issueId/upvote", upvoteIssue);
+
+router.delete("/:issueId/upvote", removeUpvote);
 
 
 export default router;
