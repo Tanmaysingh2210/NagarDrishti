@@ -1,6 +1,6 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-
+import { getPermissionsForRole } from "../config/authorityPermissions.js";
 import Authority from "../models/authority.js";
 
 
@@ -203,6 +203,338 @@ export const getMe = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Failed to fetch current authority",
+        });
+    }
+};
+
+export const createAuthority = async (req, res) => {
+    try {
+        const {
+            name,
+            employeeId,
+            phone,
+            email,
+            password,
+            profileImage,
+            role,
+            jurisdiction,
+        } = req.body;
+
+        if (
+            !name ||
+            !employeeId ||
+            !phone ||
+            !email ||
+            !password ||
+            !role
+        ) {
+            return res.status(400).json({
+                success: false,
+                message:
+                    "Name, employee ID, phone, email, password and role are required",
+            });
+        }
+
+        const permissions =
+            getPermissionsForRole(role);
+
+        if (!permissions) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid authority role",
+            });
+        }
+
+        if (password.length < 8) {
+            return res.status(400).json({
+                success: false,
+                message:
+                    "Password must contain at least 8 characters",
+            });
+        }
+
+        const normalizedEmployeeId =
+            employeeId.trim().toUpperCase();
+
+        const normalizedEmail =
+            email.trim().toLowerCase();
+
+        const normalizedPhone =
+            phone.replace(/\D/g, "");
+
+        const existingEmployee =
+            await Authority.findOne({
+                employeeId: normalizedEmployeeId,
+            });
+
+        if (existingEmployee) {
+            return res.status(409).json({
+                success: false,
+                message: "Employee ID already registered",
+            });
+        }
+
+        const existingEmail =
+            await Authority.findOne({
+                email: normalizedEmail,
+            });
+
+        if (existingEmail) {
+            return res.status(409).json({
+                success: false,
+                message: "Email already registered",
+            });
+        }
+
+        const existingPhone =
+            await Authority.findOne({
+                phone: normalizedPhone,
+            });
+
+        if (existingPhone) {
+            return res.status(409).json({
+                success: false,
+                message: "Phone number already registered",
+            });
+        }
+
+        const passwordHash =
+            await bcrypt.hash(password, 12);
+
+        const authority =
+            await Authority.create({
+                name: name.trim(),
+                employeeId:
+                    normalizedEmployeeId,
+                phone:
+                    normalizedPhone,
+                email:
+                    normalizedEmail,
+                passwordHash,
+                profileImage:
+                    profileImage || null,
+                role,
+                jurisdiction:
+                    jurisdiction || {},
+                permissions,
+                isActive: true,
+            });
+
+        return res.status(201).json({
+            success: true,
+            message:
+                "Authority created successfully",
+
+            authority: {
+                id: authority._id,
+                name: authority.name,
+                employeeId: authority.employeeId,
+                phone: authority.phone,
+                email: authority.email,
+                profileImage: authority.profileImage,
+                role: authority.role,
+                jurisdiction: authority.jurisdiction,
+                permissions: authority.permissions,
+                isActive: authority.isActive,
+                createdAt: authority.createdAt,
+            },
+        });
+
+    } catch (error) {
+        console.error(
+            "Create authority error:",
+            error
+        );
+
+        return res.status(500).json({
+            success: false,
+            message: "Failed to create authority",
+        });
+    }
+};
+
+export const getAllAuthorities = async (req, res) => {
+    try {
+        const authorities = await Authority.find()
+            .select("-passwordHash")
+            .sort({
+                createdAt: -1,
+            });
+
+        return res.status(200).json({
+            success: true,
+            count: authorities.length,
+            authorities,
+        });
+
+    } catch (error) {
+        console.error(
+            "Get authorities error:",
+            error
+        );
+
+        return res.status(500).json({
+            success: false,
+            message: "Failed to fetch authorities",
+        });
+    }
+};
+
+export const getAuthorityById = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const authority =
+            await Authority.findById(id)
+                .select("-passwordHash");
+
+        if (!authority) {
+            return res.status(404).json({
+                success: false,
+                message: "Authority not found",
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            authority,
+        });
+
+    } catch (error) {
+        console.error(
+            "Get authority by ID error:",
+            error
+        );
+
+        return res.status(500).json({
+            success: false,
+            message: "Failed to fetch authority",
+        });
+    }
+};
+
+export const updateAuthority = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const allowedFields = [
+            "name",
+            "phone",
+            "email",
+            "profileImage",
+            "role",
+            "jurisdiction",
+        ];
+
+        const updates = {};
+
+        for (const field of allowedFields) {
+            if (req.body[field] !== undefined) {
+                updates[field] = req.body[field];
+            }
+        }
+
+        // If role changes, recalculate permissions
+        if (updates.role) {
+            const permissions =
+                getPermissionsForRole(
+                    updates.role
+                );
+
+            if (!permissions) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid authority role",
+                });
+            }
+
+            updates.permissions =
+                permissions;
+        }
+
+        const authority =
+            await Authority.findByIdAndUpdate(
+                id,
+                {
+                    $set: updates,
+                },
+                {
+                    new: true,
+                    runValidators: true,
+                }
+            ).select("-passwordHash");
+
+        if (!authority) {
+            return res.status(404).json({
+                success: false,
+                message: "Authority not found",
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            message:
+                "Authority updated successfully",
+            authority,
+        });
+
+    } catch (error) {
+        console.error(
+            "Update authority error:",
+            error
+        );
+
+        return res.status(500).json({
+            success: false,
+            message: "Failed to update authority",
+        });
+    }
+};
+
+export const toggleAuthorityStatus = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const authority =
+            await Authority.findById(id);
+
+        if (!authority) {
+            return res.status(404).json({
+                success: false,
+                message: "Authority not found",
+            });
+        }
+
+        authority.isActive =
+            !authority.isActive;
+
+        await authority.save();
+
+        return res.status(200).json({
+            success: true,
+            message: authority.isActive
+                ? "Authority activated successfully"
+                : "Authority deactivated successfully",
+
+            authority: {
+                id: authority._id,
+                name: authority.name,
+                employeeId: authority.employeeId,
+                role: authority.role,
+                isActive: authority.isActive,
+            },
+        });
+
+    } catch (error) {
+        console.error(
+            "Toggle authority status error:",
+            error
+        );
+
+        return res.status(500).json({
+            success: false,
+            message:
+                "Failed to update authority status",
         });
     }
 };
