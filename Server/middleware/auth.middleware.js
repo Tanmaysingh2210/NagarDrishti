@@ -12,7 +12,7 @@ export const requireAuth = async (req, res, next) => {
       });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.SECRET);
 
     if (!decoded?.userId) {
       return res.status(401).json({

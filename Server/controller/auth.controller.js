@@ -13,7 +13,7 @@ const generateToken = (citizenId) => {
     {
       userId: citizenId,
     },
-    process.env.JWT_SECRET,
+    process.env.SECRET,
     {
       expiresIn: "7d",
     }
