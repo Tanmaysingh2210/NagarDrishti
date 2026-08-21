@@ -1,0 +1,5 @@
+outs:
+- md5: 6d3a47d7a8f55d7bb37644277ffced17
+  size: 169623319
+  hash: md5
+  path: civic_classifier.keras
