@@ -53,8 +53,9 @@ export const register = async (req, res) => {
       password,
     } = req.body;
 
+    const normalizedPhone = phone?.replace(/\D/g, "");
     // Validate required fields
-    if (!name || !phone || !password) {
+    if (!name || !normalizedPhone || !password) {
       return res.status(400).json({
         success: false,
         message: "Name, phone and password are required",
@@ -71,7 +72,7 @@ export const register = async (req, res) => {
 
     // Check existing phone
     const existingPhone = await Citizen.findOne({
-      phone,
+      phone: normalizedPhone,
     });
 
     if (existingPhone) {
@@ -101,7 +102,7 @@ export const register = async (req, res) => {
     // Create citizen
     const citizen = await Citizen.create({
       name,
-      phone,
+      phone: normalizedPhone,
       email: email?.toLowerCase(),
       passwordHash,
     });
@@ -146,6 +147,9 @@ export const login = async (req, res) => {
       password,
     } = req.body;
 
+
+
+
     if (!identifier || !password) {
       return res.status(400).json({
         success: false,
@@ -154,11 +158,12 @@ export const login = async (req, res) => {
     }
 
     const normalizedIdentifier = identifier.toLowerCase();
+    const normalizedPhone = identifier.replace(/\D/g, "");
 
     // Find using either phone or email
     const citizen = await Citizen.findOne({
       $or: [
-        { phone: identifier },
+        { phone: normalizedPhone },
         { email: normalizedIdentifier },
       ],
     }).select("+passwordHash");

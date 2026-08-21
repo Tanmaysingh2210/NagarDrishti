@@ -2,26 +2,36 @@ import mongoose from "mongoose";
 import Issue from "../models/issue.js";
 import IssueUpvote from "../models/issueUpvote.js";
 import Citizen from "../models/citizen.js";
+import counter from "../models/counter.js";
 
 
 // Generate issue number
 const generateIssueNumber = async () => {
     const year = new Date().getFullYear();
 
-    const lastIssue = await Issue.findOne({
-        issueNumber: new RegExp(`^CIV-${year}-`),
-    })
-        .sort({ createdAt: -1 })
-        .select("issueNumber");
+    // const lastIssue = await Issue.findOne({
+    //     issueNumber: new RegExp(`^CIV-${year}-`),
+    // })
+    //     .sort({ createdAt: -1 })
+    //     .select("issueNumber");
 
-    let nextNumber = 1;
+    // let nextNumber = 1;
 
-    if (lastIssue) {
-        const parts = lastIssue.issueNumber.split("-");
-        nextNumber = Number(parts[2]) + 1;
-    }
+    // if (lastIssue) {
+    //     const parts = lastIssue.issueNumber.split("-");
+    //     nextNumber = Number(parts[2]) + 1;
+    // }
+    const counter = await counter.findOneAndUpdate(
+        { name: `issue-${year}` },
+        { $inc: { seq: 1 } },
+        {
+            new: true,
+            upsert: true,
+            
+        }
+    );
 
-    return `CIV-${year}-${String(nextNumber).padStart(4, "0")}`;
+    return `CIV-${year}-${String(counter.seq).padStart(4, "0")}`;
 };
 
 
