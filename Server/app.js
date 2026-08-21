@@ -8,16 +8,17 @@ import citizenRoutes from "./routes/citizen.routes.js";
 import issueRoutes from "./routes/issue.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import authorityRoutes from "./routes/authority.routes.js";
+import authorityIssueRoutes from "./routes/authorityIssue.routes.js";
 import cors from "cors";
 
 dotenv.config();
 const app = express();
 
 app.use(
-  cors({
-    origin: process.env.CLIENT_URL,
-    credentials: true,
-  })
+    cors({
+        origin: process.env.CLIENT_URL,
+        credentials: true,
+    })
 );
 
 
@@ -36,10 +37,10 @@ app.use(cookieParser());
 // =========================
 
 app.get("/", (req, res) => {
-  res.status(200).json({
-    success: true,
-    message: "NagarDrishti API is running",
-  });
+    res.status(200).json({
+        success: true,
+        message: "NagarDrishti API is running",
+    });
 });
 
 
@@ -52,17 +53,20 @@ app.use("/api/auth", authRoutes);
 app.use("/api/authority", authorityRoutes);
 app.use("/api/citizens", citizenRoutes);
 app.use("/api/issues", issueRoutes);
-
+app.use(
+    "/api/authority/issues",
+    authorityIssueRoutes
+);
 
 // =========================
 // 404 HANDLER
 // =========================
 
 app.use((req, res) => {
-  res.status(404).json({
-    success: false,
-    message: "Route not found",
-  });
+    res.status(404).json({
+        success: false,
+        message: "Route not found",
+    });
 });
 
 
@@ -71,12 +75,12 @@ app.use((req, res) => {
 // =========================
 
 app.use((err, req, res, next) => {
-  console.error("Global error:", err);
+    console.error("Global error:", err);
 
-  res.status(err.statusCode || 500).json({
-    success: false,
-    message: err.message || "Internal server error",
-  });
+    res.status(err.statusCode || 500).json({
+        success: false,
+        message: err.message || "Internal server error",
+    });
 });
 
 
@@ -87,16 +91,16 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
-  try {
-    await connectDB();
+    try {
+        await connectDB();
 
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-    });
-  } catch (error) {
-    console.error("Server startup failed:", error.message);
-    process.exit(1);
-  }
+        app.listen(PORT, () => {
+            console.log(`Server running on port ${PORT}`);
+        });
+    } catch (error) {
+        console.error("Server startup failed:", error.message);
+        process.exit(1);
+    }
 };
 
 startServer();

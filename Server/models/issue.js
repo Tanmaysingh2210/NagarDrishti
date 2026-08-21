@@ -154,12 +154,183 @@ const issueSchema = new mongoose.Schema(
             },
         },
 
+        routing: {
+
+            departmentName: {
+                type: String,
+                trim: true,
+                default: null,
+            },
+
+            routingMethod: {
+                type: String,
+                enum: [
+                    "MANUAL",
+                    "AI",
+                    "CATEGORY",
+                    "LOCATION",
+                ],
+                default: null,
+            },
+
+            aiConfidence: {
+                type: Number,
+                min: 0,
+                max: 1,
+                default: null,
+            },
+
+            routedAt: {
+                type: Date,
+                default: null,
+            },
+        },
+
+        assignment: {
+            authorityId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "Authority",
+                default: null,
+                index: true,
+            },
+
+            assignedAt: {
+                type: Date,
+                default: null,
+            },
+
+            deadline: {
+                type: Date,
+                default: null,
+            },
+
+            priority: {
+                type: String,
+                enum: [
+                    "LOW",
+                    "MEDIUM",
+                    "HIGH",
+                    "CRITICAL",
+                ],
+                default: null,
+            },
+        },
+
+        timeline: [
+            {
+                event: {
+                    type: String,
+                    required: true,
+                    trim: true,
+                },
+
+                status: {
+                    type: String,
+                    enum: [
+                        "REPORTED",
+                        "AI_VERIFIED",
+                        "ACKNOWLEDGED",
+                        "ASSIGNED",
+                        "IN_PROGRESS",
+                        "RESOLVED",
+                        "REOPENED",
+                        "REJECTED",
+                        "ESCALATED",
+                    ],
+                },
+
+                performedBy: {
+                    type: mongoose.Schema.Types.ObjectId,
+                    default: null,
+                },
+
+                performedByType: {
+                    type: String,
+                    enum: [
+                        "CITIZEN",
+                        "AUTHORITY",
+                        "SYSTEM",
+                    ],
+                },
+
+                note: {
+                    type: String,
+                    trim: true,
+                    maxlength: 1000,
+                },
+
+                timestamp: {
+                    type: Date,
+                    default: Date.now,
+                },
+            },
+        ],
+
+        resolution: {
+            description: {
+                type: String,
+                trim: true,
+                maxlength: 2000,
+                default: null,
+            },
+
+            beforeMedia: [
+                {
+                    type: String,
+                    trim: true,
+                },
+            ],
+
+            afterMedia: [
+                {
+                    type: String,
+                    trim: true,
+                },
+            ],
+
+            resolvedBy: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "Authority",
+                default: null,
+            },
+
+            resolvedAt: {
+                type: Date,
+                default: null,
+            },
+
+            citizenVerified: {
+                type: Boolean,
+                default: false,
+            },
+
+            citizenVerifiedAt: {
+                type: Date,
+                default: null,
+            },
+
+            citizenFeedback: {
+                type: String,
+                trim: true,
+                maxlength: 1000,
+                default: null,
+            },
+        },
+
         citizenEngagement: {
             upvotes: {
                 type: Number,
                 default: 0,
                 min: 0,
             },
+
+            supporters: [
+                {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: "Citizen",
+                },
+            ],
+
             comments: {
                 type: Number,
                 default: 0,
@@ -180,6 +351,22 @@ const issueSchema = new mongoose.Schema(
 
 issueSchema.index({
     location: "2dsphere",
+});
+
+issueSchema.index({
+    "location.city": 1,
+    "location.ward": 1,
+    status: 1,
+});
+
+issueSchema.index({
+    "assignment.authorityId": 1,
+    status: 1,
+});
+
+issueSchema.index({
+    priority: 1,
+    status: 1,
 });
 
 export default mongoose.model("Issue", issueSchema);
