@@ -5,7 +5,7 @@ import {
   updateMyProfile,
   updateMyLocation,
   updateMyPreferences,
-} from "../controllers/citizen.controller.js";
+} from "../controller/citizen.controller.js";
 
 import { requireAuth } from "../middleware/auth.middleware.js";
 

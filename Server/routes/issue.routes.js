@@ -7,7 +7,7 @@ import {
     getNearbyIssues,
     upvoteIssue,
     removeUpvote,
-} from "../controllers/issue.controller.js";
+} from "../controller/issue.controller.js";
 
 import { requireAuth } from "../middleware/auth.middleware.js";
 

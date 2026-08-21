@@ -39,10 +39,7 @@ export const updateMyProfile = async (req, res) => {
     const allowedFields = [
       "name",
       "email",
-      "profileImage",
-      "location",
-      "address",
-      "preferences",
+      "profileImage"
     ];
 
     const updates = {};
@@ -181,12 +178,18 @@ export const updateMyPreferences = async (req, res) => {
       }
     }
 
+    const updates = {};
+
+    for (const field of allowedPreferences) {
+      if (req.body[field] !== undefined) {
+        updates[`preferences.${field}`] = req.body[field];
+      }
+    }
+
     const citizen = await Citizen.findByIdAndUpdate(
       req.user._id,
       {
-        $set: {
-          preferences,
-        },
+        $set: updates,
       },
       {
         new: true,
