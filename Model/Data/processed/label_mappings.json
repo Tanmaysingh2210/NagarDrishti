@@ -1,0 +1,12 @@
+{
+  "category": {
+    "ROADS": 0,
+    "STREET_LIGHTING": 1,
+    "WATER_DRAINAGE": 2,
+    "WASTE_MANAGEMENT": 3,
+    "TREES_ENVIRONMENT": 4,
+    "PUBLIC_INFRASTRUCTURE": 5,
+    "STRAY_ANIMALS": 6,
+    "OTHERS": 7
+  }
+}
