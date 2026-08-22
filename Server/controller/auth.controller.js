@@ -51,14 +51,18 @@ export const register = async (req, res) => {
       phone,
       email,
       password,
+      aadhar,
     } = req.body;
 
     const normalizedPhone = phone?.replace(/\D/g, "");
+     const normalizedAadhar = aadhar?.replace(/\D/g, "");
+    const normalizedEmail = email?.trim().toLowerCase();
+
     // Validate required fields
-    if (!name || !normalizedPhone || !password) {
+    if (!name || !normalizedPhone || !password || !normalizedAadhar) {
       return res.status(400).json({
         success: false,
-        message: "Name, phone and password are required",
+        message: "Name, phone , aadhar and password are required",
       });
     }
 
@@ -67,6 +71,17 @@ export const register = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Password must contain at least 8 characters",
+      });
+    }
+
+    // =========================
+    // AADHAAR VALIDATION
+    // =========================
+
+    if (normalizedAadhar.length !== 12) {
+      return res.status(400).json({
+        success: false,
+        message: "Aadhaar number must contain 12 digits",
       });
     }
 
@@ -79,6 +94,21 @@ export const register = async (req, res) => {
       return res.status(409).json({
         success: false,
         message: "Phone number already registered",
+      });
+    }
+
+     // =========================
+    // CHECK AADHAAR
+    // =========================
+
+    const existingAadhar = await Citizen.findOne({
+      aadhar: normalizedAadhar,
+    });
+
+    if (existingAadhar) {
+      return res.status(409).json({
+        success: false,
+        message: "Aadhaar number already registered",
       });
     }
 
@@ -103,6 +133,7 @@ export const register = async (req, res) => {
     const citizen = await Citizen.create({
       name,
       phone: normalizedPhone,
+      aadhar: normalizedAadhar,
       email: email?.toLowerCase(),
       passwordHash,
     });
@@ -116,6 +147,8 @@ export const register = async (req, res) => {
     res.status(201).json({
       success: true,
       message: "Citizen registered successfully",
+
+      token,
 
       citizen: {
         id: citizen._id,
@@ -205,6 +238,8 @@ export const login = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "Login successful",
+
+      token,
 
       citizen: {
         id: citizen._id,

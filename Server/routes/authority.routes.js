@@ -8,7 +8,7 @@ import {
     getAuthorityById,
     updateAuthority,
     toggleAuthorityStatus,
-} from "../controllers/authority.controller.js";
+} from "../controller/authority.controller.js";
 import {
     requireAuthority,
     requireRole,
