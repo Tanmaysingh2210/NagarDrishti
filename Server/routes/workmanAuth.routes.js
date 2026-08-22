@@ -4,7 +4,7 @@ import {
   login,
   logout,
   getMe,
-} from "../controller/workmanAuth.controller.js";
+} from "../controller/workman.auth.controller.js";
 
 import {
   requireWorkman,
