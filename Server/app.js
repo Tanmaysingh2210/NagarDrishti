@@ -9,6 +9,8 @@ import issueRoutes from "./routes/issue.routes.js";
 import authRoutes from "./routes/auth.routes.js";
 import authorityRoutes from "./routes/authority.routes.js";
 import authorityIssueRoutes from "./routes/authorityIssue.routes.js";
+import workmanRoutes from "./routes/workman.routes.js";
+import workmanAuthRoutes from "./routes/workmanAuth.routes.js";
 import cors from "cors";
 
 dotenv.config();
@@ -51,8 +53,10 @@ app.get("/", (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/authority", authorityRoutes);
+app.use("/api/authority/workman", workmanRoutes);
 app.use("/api/citizens", citizenRoutes);
 app.use("/api/issues", issueRoutes);
+app.use("/api/workman", workmanAuthRoutes);
 app.use(
     "/api/authority/issues",
     authorityIssueRoutes

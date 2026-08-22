@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 
 import Issue from "../models/issue.js";
+import Workman from "../models/workman.js";
 
 
 // =========================
@@ -509,3 +510,190 @@ export const getAuthorityIssueById = async (
         });
     }
 };
+
+// =========================
+// ASSIGN CONTRACTOR TO ISSUE
+// PATCH /api/authority/issues/:issueId/assign
+// =========================
+
+export const assignWorkmanToIssue = async (req, res) => {
+  try {
+    const authority = req.user;
+    const { issueId } = req.params;
+    const { workmanId, deadline, priority } = req.body;
+
+    // =========================
+    // Validate IDs
+    // =========================
+
+    if (!mongoose.Types.ObjectId.isValid(issueId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid issue ID",
+      });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(workmanId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid contractor ID",
+      });
+    }
+
+    // =========================
+    // Find Issue
+    // =========================
+
+    const issue = await Issue.findById(issueId);
+
+    if (!issue) {
+      return res.status(404).json({
+        success: false,
+        message: "Issue not found",
+      });
+    }
+
+    // =========================
+    // Jurisdiction Check
+    // =========================
+
+    if (!isIssueWithinJurisdiction(issue, authority)) {
+      return res.status(403).json({
+        success: false,
+        message: "Issue is outside your jurisdiction",
+      });
+    }
+
+    // Already assigned?
+
+    if (issue.assignment.workmanId) {
+      return res.status(400).json({
+        success: false,
+        message: "Issue is already assigned",
+      });
+    }
+
+    // =========================
+    // Find Contractor
+    // =========================
+
+    const workman = await Workman.findById(workmanId);
+
+    if (!workman) {
+      return res.status(404).json({
+        success: false,
+        message: "Contractor not found",
+      });
+    }
+
+    // =========================
+    // Contractor Validation
+    // =========================
+
+    if (!workman.isActive) {
+      return res.status(400).json({
+        success: false,
+        message: "Contractor is inactive",
+      });
+    }
+
+    if (!workman.authorityId.equals(authority._id)) {
+      return res.status(403).json({
+        success: false,
+        message: "Contractor does not belong to your authority",
+      });
+    }
+
+    if (workman.department !== issue.category) {
+      return res.status(400).json({
+        success: false,
+        message: `Contractor department (${workman.department}) does not match issue category (${issue.category})`,
+      });
+    }
+
+    if (workman.status !== "AVAILABLE") {
+      return res.status(400).json({
+        success: false,
+        message: "Contractor is not available",
+      });
+    }
+
+    // Extra jurisdiction safety
+
+    if (
+      workman.jurisdiction.city !== issue.location.city ||
+      (workman.jurisdiction.wards.length &&
+        !workman.jurisdiction.wards.includes(issue.location.ward)) ||
+      (workman.jurisdiction.zones.length &&
+        !workman.jurisdiction.zones.includes(issue.location.zone))
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "Contractor jurisdiction does not match issue location",
+      });
+    }
+
+    // =========================
+    // Assign Contractor
+    // =========================
+
+    issue.assignment.authorityId = authority._id;
+    issue.assignment.workmanId = workman._id;
+    issue.assignment.assignedAt = new Date();
+    issue.assignment.deadline = deadline || null;
+    issue.assignment.priority = priority || issue.priority;
+
+    issue.status = "ASSIGNED";
+
+    // Timeline
+
+    issue.timeline.push({
+      event: `Assigned to contractor ${workman.contractorName}`,
+      status: "ASSIGNED",
+      performedBy: authority._id,
+      performedByType: "AUTHORITY",
+      note: deadline
+        ? `Deadline: ${deadline}`
+        : "No deadline specified",
+    });
+
+    // Contractor becomes busy
+
+    workman.status = "WORKING";
+
+    await Promise.all([
+      issue.save(),
+      workman.save(),
+    ]);
+
+    return res.status(200).json({
+      success: true,
+      message: "Contractor assigned successfully",
+
+      assignment: {
+        issueId: issue._id,
+        issueNumber: issue.issueNumber,
+
+        contractor: {
+          id: workman._id,
+          contractorName: workman.contractorName,
+          contractorCode: workman.contractorCode,
+          department: workman.department,
+        },
+
+        assignedAt: issue.assignment.assignedAt,
+        deadline: issue.assignment.deadline,
+        status: issue.status,
+      },
+    });
+
+  } catch (error) {
+    console.error("assignWorkmanToIssue error:", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "Failed to assign contractor",
+    });
+  }
+};
+

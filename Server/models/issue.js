@@ -193,6 +193,12 @@ const issueSchema = new mongoose.Schema(
                 default: null,
                 index: true,
             },
+            workmanId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "Workman",
+                default: null,
+                index: true,
+            },
 
             assignedAt: {
                 type: Date,
@@ -249,6 +255,7 @@ const issueSchema = new mongoose.Schema(
                     enum: [
                         "CITIZEN",
                         "AUTHORITY",
+                        "WORKMAN",
                         "SYSTEM",
                     ],
                 },
